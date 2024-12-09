@@ -14,7 +14,7 @@ public class Calculadora extends JFrame implements ActionListener, KeyListener {
         "1", "2", "3", "+",
         "4", "5", "6", "/",
         "7", "8", "9", "-",
-        "0", "=", "DEL", "*"
+        "0", "=", "DEL", ","
     };
 
     /** TextField para mostrar los resultados */
@@ -32,7 +32,7 @@ public class Calculadora extends JFrame implements ActionListener, KeyListener {
 
     /** Inicialización de la ventana */
     public void init() {
-        setTitle("Calculadora - Operaciones visibles");
+        setTitle("Calculadora - Decimales con ',' y '.'");
         Toolkit screen = Toolkit.getDefaultToolkit();
         Dimension screenSizes = screen.getScreenSize();
         setSize(screenSizes.width / 2, 600); // Tamaño de la ventana
@@ -75,7 +75,7 @@ public class Calculadora extends JFrame implements ActionListener, KeyListener {
             if (texto.matches("[+\\-*/=]")) { // Botones de operación
                 boton.setBackground(new Color(41, 121, 255)); // Azul eléctrico
                 boton.setForeground(Color.WHITE); // Texto blanco
-            } else { // Botones numéricos y "DEL"
+            } else { // Botones numéricos, "," y "DEL"
                 boton.setBackground(new Color(66, 66, 66)); // Gris medio
                 boton.setForeground(Color.WHITE); // Texto blanco
             }
@@ -121,8 +121,8 @@ public class Calculadora extends JFrame implements ActionListener, KeyListener {
     public void keyTyped(KeyEvent e) {
         char keyChar = e.getKeyChar();
 
-        // Verifica si la tecla presionada es un número, operador o Enter
-        if (Character.isDigit(keyChar) || "+-*/".indexOf(keyChar) >= 0) {
+        // Verifica si la tecla presionada es un número, operador, punto o coma
+        if (Character.isDigit(keyChar) || "+-*/".indexOf(keyChar) >= 0 || keyChar == '.' || keyChar == ',') {
             handleInput(String.valueOf(keyChar));
         } else if (keyChar == '\n') { // Tecla Enter
             handleInput("=");
@@ -141,44 +141,73 @@ public class Calculadora extends JFrame implements ActionListener, KeyListener {
         // No implementado
     }
 
-    /** Procesa la entrada del usuario */
     private void handleInput(String input) {
         try {
             if ("DEL".equals(input)) {
                 if (!operacionCompleta.isEmpty()) {
                     operacionCompleta = operacionCompleta.substring(0, operacionCompleta.length() - 1);
-                    display.setText(operacionCompleta);
+                    display.setText(operacionCompleta.replace('.', ','));
                 }
             } else if ("=".equals(input)) {
                 calcularResultado();
+            } else if (input.equals(",") || input.equals(".")) {
+                // Si ya existe un punto o coma en el número, no permitir agregar otro
+                if (!operacionCompleta.contains(",") && !operacionCompleta.contains(".")) {
+                    operacionCompleta += ",";
+                    display.setText(operacionCompleta.replace('.', ','));
+                }
+            } else if ("+".equals(input) || "-".equals(input) || "*".equals(input) || "/".equals(input)) {
+                // Si ya tenemos un resultado calculado y queremos empezar una nueva operación
+                if (nuevaOperacion) {
+                    operacionCompleta = String.valueOf(resultado); // Inicia con el resultado previo
+                    nuevaOperacion = false;
+                }
+                // Agregar el operador a la cadena de operación
+                operacionCompleta += input;
+                display.setText(operacionCompleta.replace('.', ','));
             } else {
+                // Si estamos en una nueva operación, comenzamos de nuevo con el número
                 if (nuevaOperacion && Character.isDigit(input.charAt(0))) {
                     operacionCompleta = input;
                     nuevaOperacion = false;
                 } else {
+                    // Concatenar la entrada al número actual
                     operacionCompleta += input;
                 }
-                display.setText(operacionCompleta);
+                display.setText(operacionCompleta.replace('.', ','));
             }
         } catch (Exception ex) {
             display.setText("Error");
         }
     }
-
+    
     /** Calcula el resultado de la operación */
     private void calcularResultado() {
         try {
             // Evalúa la operación completa
-            resultado = eval(operacionCompleta);
-            display.setText(operacionCompleta + " = " + resultado);
-            operacionCompleta = String.valueOf(resultado); // Actualiza la operación con el resultado
-            nuevaOperacion = false; // Permitir seguir operando
+            resultado = eval(operacionCompleta.replace(',', '.'));
+            operacionCompleta = String.valueOf(resultado).replace('.', ','); // Actualiza la operación con el resultado
+    
+            // Verificar si el resultado es negativo
+            if (resultado < 0) {
+                display.setForeground(new Color(255, 87, 87)); // Rojo oscuro para números negativos
+            } else {
+                display.setForeground(Color.WHITE); // Volver al texto blanco
+            }
+    
+            display.setText(operacionCompleta); // Mostrar el resultado
+            nuevaOperacion = true; // Permitir comenzar una nueva operación
         } catch (ArithmeticException ex) {
             display.setText("Error: División por cero");
+            display.setForeground(Color.RED);
         } catch (Exception ex) {
             display.setText("Error: Operación inválida");
+            display.setForeground(Color.RED);
         }
     }
+    
+
+
 
     /** Evalúa una operación matemática simple */
     private double eval(String operacion) {
