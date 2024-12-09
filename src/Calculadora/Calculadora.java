@@ -2,13 +2,12 @@ package Calculadora;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 
 /**
- * Clase que representa la lógica de la calculadora con GridBagLayout y tamaño personalizado
+ * Clase que representa la lógica de la calculadora
  */
-public class Calculadora extends JFrame implements ActionListener {
+public class Calculadora extends JFrame implements ActionListener, KeyListener {
 
     /** Contenido de los botones */
     private String[] buttonsText = {
@@ -18,6 +17,14 @@ public class Calculadora extends JFrame implements ActionListener {
         "0", "=", "DEL", "*"
     };
 
+    /** TextField para mostrar los resultados */
+    private JTextField display;
+
+    /** Variables para la lógica de cálculo */
+    private String operacionCompleta = ""; // Cadena que almacena toda la operación
+    private double resultado = 0; // Resultado actual
+    private boolean nuevaOperacion = true; // Indica si inicia una nueva operación
+
     /** Constructor de la calculadora */
     public Calculadora() {
         init();
@@ -25,13 +32,25 @@ public class Calculadora extends JFrame implements ActionListener {
 
     /** Inicialización de la ventana */
     public void init() {
-        setTitle("Calculadora - Tamaño Personalizado");
+        setTitle("Calculadora - Operaciones visibles");
         Toolkit screen = Toolkit.getDefaultToolkit();
         Dimension screenSizes = screen.getScreenSize();
         setSize(screenSizes.width / 2, 600); // Tamaño de la ventana
         setLocation(screenSizes.width / 4, screenSizes.height / 4);
         getContentPane().setBackground(new Color(46, 46, 46)); // Fondo gris oscuro
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Crear el área de visualización
+        display = new JTextField();
+        display.setEditable(false);
+        display.setBackground(new Color(33, 33, 33)); // Fondo negro
+        display.setForeground(Color.WHITE); // Texto blanco
+        display.setFont(new Font("Arial", Font.BOLD, 24)); // Fuente grande
+        display.setHorizontalAlignment(JTextField.RIGHT); // Alinear texto a la derecha
+        display.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Espaciado interno
+
+        // Agregar el KeyListener para capturar entradas del teclado
+        display.addKeyListener(this);
 
         // Panel con GridBagLayout
         JPanel panelBotones = new JPanel(new GridBagLayout());
@@ -64,9 +83,6 @@ public class Calculadora extends JFrame implements ActionListener {
             boton.setFont(new Font("Arial", Font.PLAIN, 16)); // Tamaño de fuente
             boton.setFocusPainted(false); // Eliminar borde de enfoque
 
-            // Establecer un tamaño exacto opcionalmente
-            boton.setPreferredSize(new Dimension(30, 30)); // Tamaño fijo del botón (opcional)
-
             boton.addActionListener(this);
 
             // Posición del botón en la cuadrícula
@@ -84,8 +100,9 @@ public class Calculadora extends JFrame implements ActionListener {
 
         // Agregar margen al panel principal
         JPanel panelConMargen = new JPanel(new BorderLayout());
-        panelConMargen.setBorder(BorderFactory.createEmptyBorder(70, 70, 30, 70)); // Márgenes alrededor
+        panelConMargen.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Márgenes alrededor
         panelConMargen.setOpaque(false); // Fondo transparente
+        panelConMargen.add(display, BorderLayout.NORTH); // Agregar la pantalla en la parte superior
         panelConMargen.add(panelBotones, BorderLayout.CENTER);
 
         add(panelConMargen, BorderLayout.CENTER);
@@ -95,11 +112,87 @@ public class Calculadora extends JFrame implements ActionListener {
     /** Maneja los eventos de los botones */
     @Override
     public void actionPerformed(ActionEvent e) {
-        // Obtener el texto del botón presionado
         String command = e.getActionCommand();
-        System.out.println("Botón presionado: " + command);
+        handleInput(command);
+    }
 
-        // Aquí puedes añadir la lógica de cálculo
+    /** Maneja la entrada del teclado */
+    @Override
+    public void keyTyped(KeyEvent e) {
+        char keyChar = e.getKeyChar();
+
+        // Verifica si la tecla presionada es un número, operador o Enter
+        if (Character.isDigit(keyChar) || "+-*/".indexOf(keyChar) >= 0) {
+            handleInput(String.valueOf(keyChar));
+        } else if (keyChar == '\n') { // Tecla Enter
+            handleInput("=");
+        } else if (keyChar == '\b') { // Tecla Backspace
+            handleInput("DEL");
+        }
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        // No implementado
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        // No implementado
+    }
+
+    /** Procesa la entrada del usuario */
+    private void handleInput(String input) {
+        try {
+            if ("DEL".equals(input)) {
+                if (!operacionCompleta.isEmpty()) {
+                    operacionCompleta = operacionCompleta.substring(0, operacionCompleta.length() - 1);
+                    display.setText(operacionCompleta);
+                }
+            } else if ("=".equals(input)) {
+                calcularResultado();
+            } else {
+                if (nuevaOperacion && Character.isDigit(input.charAt(0))) {
+                    operacionCompleta = input;
+                    nuevaOperacion = false;
+                } else {
+                    operacionCompleta += input;
+                }
+                display.setText(operacionCompleta);
+            }
+        } catch (Exception ex) {
+            display.setText("Error");
+        }
+    }
+
+    /** Calcula el resultado de la operación */
+    private void calcularResultado() {
+        try {
+            // Evalúa la operación completa
+            resultado = eval(operacionCompleta);
+            display.setText(operacionCompleta + " = " + resultado);
+            operacionCompleta = String.valueOf(resultado); // Actualiza la operación con el resultado
+            nuevaOperacion = false; // Permitir seguir operando
+        } catch (ArithmeticException ex) {
+            display.setText("Error: División por cero");
+        } catch (Exception ex) {
+            display.setText("Error: Operación inválida");
+        }
+    }
+
+    /** Evalúa una operación matemática simple */
+    private double eval(String operacion) {
+        String[] tokens = operacion.split("([+\\-*/])");
+        String operador = operacion.replaceAll("[^+\\-*/]", "");
+        double num1 = Double.parseDouble(tokens[0]);
+        double num2 = Double.parseDouble(tokens[1]);
+        return switch (operador) {
+            case "+" -> num1 + num2;
+            case "-" -> num1 - num2;
+            case "*" -> num1 * num2;
+            case "/" -> num1 / num2;
+            default -> throw new IllegalArgumentException("Operador no válido");
+        };
     }
 
     /** Método principal para iniciar la aplicación */
