@@ -5,142 +5,250 @@ import java.awt.*;
 import java.awt.event.*;
 
 /**
- * Clase que representa la lógica de la calculadora
+ * Clase que representa una calculadora con interfaz gráfica.
+ * 
+ * @author Pablo Dopazo Suárez
+ * @version 1.0.0
  */
-public class Calculadora extends JFrame implements ActionListener, KeyListener {
+public class Calculadora extends JFrame implements ActionListener, KeyListener, ItemListener {
 
-    /** Contenido de los botones */
+    /** Contenido de los botones de la calculadora */
     private String[] buttonsText = {
         "1", "2", "3", "+",
         "4", "5", "6", "/",
         "7", "8", "9", "-",
-        "0", "=", "DEL", ","
+        "0", ",", "DEL", "="
     };
 
-    /** TextField para mostrar los resultados */
-    private JTextField display;
+    /** Área de visualización donde se muestran las operaciones y resultados */
+    private JTextArea display;
 
-    /** Variables para la lógica de cálculo */
-    private String operacionCompleta = ""; // Cadena que almacena toda la operación
-    private double resultado = 0; // Resultado actual
-    private boolean nuevaOperacion = true; // Indica si inicia una nueva operación
+    /** Checkbox para seleccionar el modo teclado numérico */
+    private JCheckBox tecladoNumericoMode;
 
-    /** Constructor de la calculadora */
+    /** Checkbox para seleccionar el modo solo ratón */
+    private JCheckBox soloRatonMode;
+
+    /** Checkbox para seleccionar el modo mixto */
+    private JCheckBox modoMixtoMode; 
+
+    /** Panel que contiene los botones de la calculadora */
+    private JPanel panelBotones;
+
+    /** Operación completa en formato de texto */
+    private String operacionCompleta = "";
+
+    /** Resultado de la operación actual */
+    private double resultado = 0;
+
+    /** Indica si es una nueva operación */
+    private boolean nuevaOperacion = true;
+
+    /** Modo que indica si se puede usar el teclado numérico */
+    private boolean modoTecladoNumerico = false;
+
+    /** Modo que indica si se puede usar solo el ratón */
+    private boolean soloRaton = false;
+
+    /** Modo que permite la combinación de teclado y ratón */
+    private boolean modoMixto = false;
+
+    /**
+     * Constructor de la clase Calculadora. Inicializa la interfaz gráfica.
+     */
     public Calculadora() {
         init();
     }
 
-    /** Inicialización de la ventana */
+    /**
+     * Inicializa los componentes de la interfaz gráfica de la calculadora.
+     * Configura los botones, display y modos de interacción.
+     */
     public void init() {
-        setTitle("Calculadora - Decimales con ',' y '.'");
+        setTitle("Calculadora");
         Toolkit screen = Toolkit.getDefaultToolkit();
         Dimension screenSizes = screen.getScreenSize();
-        setSize(screenSizes.width / 2, 600); // Tamaño de la ventana
+        setSize(screenSizes.width / 2, 650);
         setLocation(screenSizes.width / 4, screenSizes.height / 4);
-        getContentPane().setBackground(new Color(46, 46, 46)); // Fondo gris oscuro
+        getContentPane().setBackground(new Color(46, 46, 46));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Crear el área de visualización
-        display = new JTextField();
+        display = new JTextArea(2, 20);
         display.setEditable(false);
-        display.setBackground(new Color(33, 33, 33)); // Fondo negro
-        display.setForeground(Color.WHITE); // Texto blanco
-        display.setFont(new Font("Arial", Font.BOLD, 24)); // Fuente grande
-        display.setHorizontalAlignment(JTextField.RIGHT); // Alinear texto a la derecha
-        display.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Espaciado interno
-
-        // Agregar el KeyListener para capturar entradas del teclado
+        display.setBackground(new Color(33, 33, 33));
+        display.setForeground(Color.WHITE);
+        display.setFont(new Font("Arial", Font.BOLD, 70));
+        display.setLineWrap(true);
+        display.setWrapStyleWord(true);
+        display.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        display.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         display.addKeyListener(this);
 
-        // Panel con GridBagLayout
-        JPanel panelBotones = new JPanel(new GridBagLayout());
-        panelBotones.setOpaque(false); // Fondo transparente
+        tecladoNumericoMode = new JCheckBox("Modo Teclado Numérico");
+        tecladoNumericoMode.setForeground(Color.WHITE);
+        tecladoNumericoMode.setBackground(new Color(46, 46, 46));
+        tecladoNumericoMode.setFocusPainted(false);
+        tecladoNumericoMode.setFont(new Font("Arial", Font.PLAIN, 16));
+        tecladoNumericoMode.addItemListener(this);
+
+        soloRatonMode = new JCheckBox("Modo Solo Ratón");
+        soloRatonMode.setForeground(Color.WHITE);
+        soloRatonMode.setBackground(new Color(46, 46, 46));
+        soloRatonMode.setFocusPainted(false);
+        soloRatonMode.setFont(new Font("Arial", Font.PLAIN, 16));
+        soloRatonMode.addItemListener(this);
+
+        modoMixtoMode = new JCheckBox("Modo Mixto");
+        modoMixtoMode.setForeground(Color.WHITE);
+        modoMixtoMode.setBackground(new Color(46, 46, 46));
+        modoMixtoMode.setFocusPainted(false);
+        modoMixtoMode.setFont(new Font("Arial", Font.PLAIN, 16));
+        modoMixtoMode.addItemListener(this);
+
+        JPanel panelOpciones = new JPanel(new GridLayout(3, 1, 5, 5));
+        panelOpciones.setOpaque(false);
+        panelOpciones.add(tecladoNumericoMode);
+        panelOpciones.add(soloRatonMode);
+        panelOpciones.add(modoMixtoMode);
+
+        panelBotones = new JPanel(new GridBagLayout());
+        panelBotones.setOpaque(false);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.BOTH; // Ajustar tamaño de los botones
-        gbc.insets = new Insets(5, 5, 5, 5); // Márgenes entre los botones
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.ipadx = 30;
+        gbc.ipady = 20;
 
-        // Configuración para ajustar tamaños personalizados
-        gbc.weightx = 1.0; // Expandir horizontalmente
-        gbc.weighty = 1.0; // Expandir verticalmente
-        gbc.ipadx = 30; // Padding interno horizontal
-        gbc.ipady = 20; // Padding interno vertical
-
-        // Añadir botones al panel
         int row = 0, col = 0;
         for (String texto : buttonsText) {
             JButton boton = new JButton(texto);
 
-            // Personalizar el color del botón según su tipo
-            if (texto.matches("[+\\-*/=]")) { // Botones de operación
-                boton.setBackground(new Color(41, 121, 255)); // Azul eléctrico
-                boton.setForeground(Color.WHITE); // Texto blanco
-            } else { // Botones numéricos, "," y "DEL"
-                boton.setBackground(new Color(66, 66, 66)); // Gris medio
-                boton.setForeground(Color.WHITE); // Texto blanco
+            if (texto.matches("[+\\-*/=]")) {
+                boton.setBackground(new Color(41, 121, 255));
+                boton.setForeground(Color.WHITE);
+            } else {
+                boton.setBackground(new Color(66, 66, 66));
+                boton.setForeground(Color.WHITE);
             }
 
-            boton.setFont(new Font("Arial", Font.PLAIN, 16)); // Tamaño de fuente
-            boton.setFocusPainted(false); // Eliminar borde de enfoque
+            boton.setFont(new Font("Arial", Font.PLAIN, 16));
+            boton.setFocusPainted(false);
 
             boton.addActionListener(this);
 
-            // Posición del botón en la cuadrícula
-            gbc.gridx = col; // Columna
-            gbc.gridy = row; // Fila
+            gbc.gridx = col;
+            gbc.gridy = row;
             panelBotones.add(boton, gbc);
 
-            // Ajustar la posición de la cuadrícula
             col++;
-            if (col > 3) { // 4 columnas por fila
+            if (col > 3) {
                 col = 0;
                 row++;
             }
         }
 
-        // Agregar margen al panel principal
+        JPanel panelSuperior = new JPanel(new BorderLayout());
+        panelSuperior.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panelSuperior.setOpaque(false);
+        panelSuperior.add(panelOpciones, BorderLayout.WEST);
+        panelSuperior.add(display, BorderLayout.CENTER);
+
         JPanel panelConMargen = new JPanel(new BorderLayout());
-        panelConMargen.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Márgenes alrededor
-        panelConMargen.setOpaque(false); // Fondo transparente
-        panelConMargen.add(display, BorderLayout.NORTH); // Agregar la pantalla en la parte superior
+        panelConMargen.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panelConMargen.setOpaque(false);
+        panelConMargen.add(panelSuperior, BorderLayout.NORTH);
         panelConMargen.add(panelBotones, BorderLayout.CENTER);
 
         add(panelConMargen, BorderLayout.CENTER);
-        setVisible(true); // Mostrar la ventana después de añadir los componentes
+        setVisible(true);
+
+        actualizarEstadoBotones();
     }
 
-    /** Maneja los eventos de los botones */
+    /**
+     * Maneja las acciones realizadas sobre los botones de la calculadora.
+     * @param e Evento que contiene la acción realizada.
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
+        if (!modoMixto && !soloRaton && modoTecladoNumerico) {
+            return;
+        }
+
         String command = e.getActionCommand();
         handleInput(command);
     }
 
-    /** Maneja la entrada del teclado */
+    /**
+     * Maneja las teclas presionadas cuando el teclado es utilizado.
+     * @param e Evento de tecla presionada.
+     */
     @Override
     public void keyTyped(KeyEvent e) {
-        char keyChar = e.getKeyChar();
+        if (!modoMixto && (soloRaton || !modoTecladoNumerico)) {
+            e.consume();
+            return;
+        }
 
-        // Verifica si la tecla presionada es un número, operador, punto o coma
-        if (Character.isDigit(keyChar) || "+-*/".indexOf(keyChar) >= 0 || keyChar == '.' || keyChar == ',') {
+        char keyChar = e.getKeyChar();
+        if (Character.isDigit(keyChar) || "+-*/".indexOf(keyChar) >= 0 || keyChar == ',' || keyChar == '.') {
             handleInput(String.valueOf(keyChar));
-        } else if (keyChar == '\n') { // Tecla Enter
+        } else if (keyChar == '\n') {
             handleInput("=");
-        } else if (keyChar == '\b') { // Tecla Backspace
+        } else if (keyChar == '\b') {
             handleInput("DEL");
         }
     }
 
     @Override
-    public void keyPressed(KeyEvent e) {
-        // No implementado
-    }
+    public void keyPressed(KeyEvent e) {}
 
     @Override
-    public void keyReleased(KeyEvent e) {
-        // No implementado
+    public void keyReleased(KeyEvent e) {}
+
+    /**
+     * Maneja los cambios de estado de los checkboxes (modos de interacción).
+     * @param e Evento que representa el cambio de estado del checkbox.
+     */
+    @Override
+    public void itemStateChanged(ItemEvent e) {
+        if (e.getSource() == tecladoNumericoMode) {
+            modoTecladoNumerico = tecladoNumericoMode.isSelected();
+            if (modoTecladoNumerico) modoMixtoMode.setSelected(false);
+        } else if (e.getSource() == soloRatonMode) {
+            soloRaton = soloRatonMode.isSelected();
+            if (soloRaton) modoMixtoMode.setSelected(false);
+        } else if (e.getSource() == modoMixtoMode) {
+            modoMixto = modoMixtoMode.isSelected();
+            if (modoMixto) {
+                tecladoNumericoMode.setSelected(false);
+                soloRatonMode.setSelected(false);
+            }
+        }
+
+        actualizarEstadoBotones();
     }
 
+    /**
+     * Actualiza el estado de los botones de la calculadora según los modos activos.
+     */
+    private void actualizarEstadoBotones() {
+        boolean habilitarBotones = soloRaton || modoMixto;
+
+        for (Component componente : panelBotones.getComponents()) {
+            if (componente instanceof JButton) {
+                componente.setEnabled(habilitarBotones);
+            }
+        }
+    }
+
+    /**
+     * Maneja la entrada del usuario, ya sea a través del teclado o los botones.
+     * @param input Cadena de texto que representa la entrada del usuario.
+     */
     private void handleInput(String input) {
         try {
             if ("DEL".equals(input)) {
@@ -151,27 +259,22 @@ public class Calculadora extends JFrame implements ActionListener, KeyListener {
             } else if ("=".equals(input)) {
                 calcularResultado();
             } else if (input.equals(",") || input.equals(".")) {
-                // Si ya existe un punto o coma en el número, no permitir agregar otro
                 if (!operacionCompleta.contains(",") && !operacionCompleta.contains(".")) {
                     operacionCompleta += ",";
                     display.setText(operacionCompleta.replace('.', ','));
                 }
             } else if ("+".equals(input) || "-".equals(input) || "*".equals(input) || "/".equals(input)) {
-                // Si ya tenemos un resultado calculado y queremos empezar una nueva operación
                 if (nuevaOperacion) {
-                    operacionCompleta = String.valueOf(resultado); // Inicia con el resultado previo
+                    operacionCompleta = String.valueOf(resultado);
                     nuevaOperacion = false;
                 }
-                // Agregar el operador a la cadena de operación
                 operacionCompleta += input;
                 display.setText(operacionCompleta.replace('.', ','));
             } else {
-                // Si estamos en una nueva operación, comenzamos de nuevo con el número
                 if (nuevaOperacion && Character.isDigit(input.charAt(0))) {
                     operacionCompleta = input;
                     nuevaOperacion = false;
                 } else {
-                    // Concatenar la entrada al número actual
                     operacionCompleta += input;
                 }
                 display.setText(operacionCompleta.replace('.', ','));
@@ -180,51 +283,48 @@ public class Calculadora extends JFrame implements ActionListener, KeyListener {
             display.setText("Error");
         }
     }
-    
-    /** Calcula el resultado de la operación */
+
+    /**
+     * Calcula el resultado de la operación completa y lo muestra en la pantalla.
+     */
     private void calcularResultado() {
         try {
-            // Evalúa la operación completa
             resultado = eval(operacionCompleta.replace(',', '.'));
-            operacionCompleta = String.valueOf(resultado).replace('.', ','); // Actualiza la operación con el resultado
-    
-            // Verificar si el resultado es negativo
-            if (resultado < 0) {
-                display.setForeground(new Color(255, 87, 87)); // Rojo oscuro para números negativos
-            } else {
-                display.setForeground(Color.WHITE); // Volver al texto blanco
-            }
-    
-            display.setText(operacionCompleta); // Mostrar el resultado
-            nuevaOperacion = true; // Permitir comenzar una nueva operación
-        } catch (ArithmeticException ex) {
-            display.setText("Error: División por cero");
-            display.setForeground(Color.RED);
+            String resultadoStr = String.valueOf(resultado).replace('.', ',');
+            display.setText(operacionCompleta.replace('.', ',') + "\n" + resultadoStr);
+            operacionCompleta = resultadoStr;
+            nuevaOperacion = true;
         } catch (Exception ex) {
-            display.setText("Error: Operación inválida");
-            display.setForeground(Color.RED);
+            display.setText("Error");
         }
     }
-    
 
-
-
-    /** Evalúa una operación matemática simple */
+    /**
+     * Evalúa la operación matemática representada por una cadena de texto.
+     * @param operacion La operación matemática en formato de cadena.
+     * @return El resultado de la operación.
+     */
     private double eval(String operacion) {
-        String[] tokens = operacion.split("([+\\-*/])");
-        String operador = operacion.replaceAll("[^+\\-*/]", "");
-        double num1 = Double.parseDouble(tokens[0]);
-        double num2 = Double.parseDouble(tokens[1]);
-        return switch (operador) {
-            case "+" -> num1 + num2;
-            case "-" -> num1 - num2;
-            case "*" -> num1 * num2;
-            case "/" -> num1 / num2;
-            default -> throw new IllegalArgumentException("Operador no válido");
-        };
+        String[] tokens = operacion.split("(?<=[-+*/])|(?=[-+*/])");
+        double resultado = Double.parseDouble(tokens[0]);
+        for (int i = 1; i < tokens.length; i += 2) {
+            String operador = tokens[i];
+            double num = Double.parseDouble(tokens[i + 1]);
+            resultado = switch (operador) {
+                case "+" -> resultado + num;
+                case "-" -> resultado - num;
+                case "*" -> resultado * num;
+                case "/" -> resultado / num;
+                default -> throw new IllegalArgumentException("Operador no válido");
+            };
+        }
+        return resultado;
     }
 
-    /** Método principal para iniciar la aplicación */
+    /**
+     * Método principal que ejecuta la calculadora. 
+     * @param args Argumentos de línea de comandos.
+     */
     public static void main(String[] args) {
         new Calculadora();
     }
